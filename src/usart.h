@@ -12,6 +12,7 @@
 #define _USART_H_
 
 //---- Includes to help the Defines ----------
+#include "hard.h"
 #include "stm32f10x.h"
 
 
@@ -25,10 +26,14 @@
 //---- Common Defines --------------------
 // 0xMMMF    Mantissa MMM Fraction F/16
 //
-// #define USART_PCKL1_9600        0x0EA6    //con xtal
+#ifdef HSE_CRYSTAL_OSC
+#define USART_PCKL1_9600        0x0EA6    //con xtal
+#define USART_PCKL2_9600        0x1D4C
+#endif
+#ifdef HSI_INTERNAL_RC
 #define USART_PCKL1_9600        0x0DD3    //con rc interno da 9060, corrijo
-// #define USART_PCKL2_9600        0x1D4C
 #define USART_PCKL2_9600        0x1B40    //con rc interno da 8930, corrijo
+#endif
 
 #define USART1_9600        USART_PCKL2_9600
 #define USART2_9600        USART_PCKL1_9600

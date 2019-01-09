@@ -446,34 +446,11 @@ resp_t CodesWaitFive (void)
     {
     case CW_INIT:
         CODES_TIMER_CNT = 0;
-
-        // if (RX_CODE)
-        //     last_rx_value = 1;
-        // else
-        //     last_rx_value = 0;
-
         wait_state++;
         break;
 
     case CW_WAITING:
-        // if (last_rx_value)    //lo ultimo era 1
-        // {
-        //     if (!RX_CODE)
-        //     {
-        //         wait_state = CW_INIT;
-        //         resp = resp_error;
-        //     }
-        // }
-        // else    //lo ultimo era 0
-        // {
-        //     if (RX_CODE)
-        //     {
-        //         wait_state = CW_INIT;
-        //         resp = resp_error;
-        //     }
-        // }
-
-        if (RX_CODE)
+        if (DATA_PIN)
         {
             wait_state = CW_INIT;
             resp = resp_error;
@@ -493,7 +470,7 @@ resp_t CodesWaitFive (void)
 //resetea la SM de RecvCode
 inline void CodesRecvCode16Reset (void)
 {
-	// RX_CODE_PLLUP_OFF;
+	// DATA_PIN_PLLUP_OFF;
 	// RX_EN_OFF;
 	// TIM4Disable();
 
@@ -517,17 +494,14 @@ resp_t CodesRecvCode16 (unsigned char * bits)
         break;
 
     case C_RXINIT_PULLUP:
-        //espera que levante despues del silencio
-        // if (RX_CODE)
-            recv_state = C_RXWAIT_PILOT_A;
+        recv_state = C_RXWAIT_PILOT_A;
         
         break;
 
     case C_RXWAIT_PILOT_A:
         //espera transciciones
 
-        // if (!RX_CODE)	//tengo transicion inicio pilot
-        if (RX_CODE)	//tengo transicion inicio pilot            
+        if (DATA_PIN)	//tengo transicion inicio pilot            
         {
             recv_state = C_RXWAIT_PILOT_B;
             CODES_TIMER_CNT = 0;
@@ -539,8 +513,7 @@ resp_t CodesRecvCode16 (unsigned char * bits)
         if (CODES_TIMER_CNT > 3000)	//pasaron 3mseg sin nada
             recv_state = C_RXERROR;
 
-        // if (RX_CODE)	//tengo pilot y primera transicion bits
-        if (!RX_CODE)	//tengo pilot y primera transicion bits            
+        if (!DATA_PIN)	//tengo pilot y primera transicion bits            
         {
             bits_t[bits_c] = CODES_TIMER_CNT;
             CODES_TIMER_CNT = 0;
@@ -555,15 +528,16 @@ resp_t CodesRecvCode16 (unsigned char * bits)
         {
             bits_c -= 1;	//ajusto pilot
             bits_c >>= 1;	//2 transciciones 1 bit
-            if ((bits_c == 12) || (bits_c == 28))
+            if ((bits_c == 12) ||
+                (bits_c == 24) ||
+                (bits_c == 28))
                 recv_state = C_RXOK;
             else
                 recv_state = C_RXERROR;
 
         }
 
-        // if (!RX_CODE)	//tengo segunda transcicion bit
-        if (RX_CODE)	//tengo segunda transcicion bit            
+        if (DATA_PIN)	//tengo segunda transcicion bit            
         {
             bits_t[bits_c] = CODES_TIMER_CNT;
             CODES_TIMER_CNT = 0;
@@ -584,8 +558,7 @@ resp_t CodesRecvCode16 (unsigned char * bits)
         if (CODES_TIMER_CNT > 3000)	//pasaron 3mseg sin nada
             recv_state = C_RXERROR;
 
-        // if (RX_CODE)	//tengo segunda transcicion bit y primera del proximo
-        if (!RX_CODE)	//tengo segunda transcicion bit y primera del proximo            
+        if (!DATA_PIN)	//tengo segunda transcicion bit y primera del proximo            
         {
             bits_t[bits_c] = CODES_TIMER_CNT;
             CODES_TIMER_CNT = 0;
@@ -623,7 +596,7 @@ resp_t CodesRecvCode16 (unsigned char * bits)
 //Recibe cantidad de bits
 //contesta con punteros a codigo, lambda rx
 //contesta con resp_ok o resp_error cuando valida el codigo
-resp_t CodesUpdateTransitions (unsigned char bits, unsigned int * rxcode, unsigned short * lambda)
+resp_t CodesUpdateTransitionsHT (unsigned char bits, unsigned int * rxcode, unsigned short * lambda)
 {
     resp_t resp = resp_ok;
     unsigned char i;
@@ -676,3 +649,63 @@ resp_t CodesUpdateTransitions (unsigned char bits, unsigned int * rxcode, unsign
 
     return resp;
 }
+
+//Recibe cantidad de bits
+//contesta con punteros a codigo, lambda rx
+//contesta con resp_ok o resp_error cuando valida el codigo
+resp_t CodesUpdateTransitionsPT_EV (unsigned char bits, unsigned int * rxcode, unsigned short * lambda)
+{
+    resp_t resp = resp_ok;
+    unsigned char i;
+    unsigned char transitions;
+    unsigned char tot_lambda;
+    unsigned int tot_time = 0;
+    unsigned short lambda15;
+
+    *rxcode = 0;
+    //tengo 2 transiciones por bit
+    transitions = bits * 2;
+    for (i = 0; i < transitions; i++)
+        tot_time += bits_t[i];		//todas las transiciones, no usa pilot
+
+    tot_lambda = bits * 3;
+    *lambda = tot_time / tot_lambda;
+    lambda15 = *lambda * 3;
+    lambda15 >>= 1;
+
+    //compenso diferencias en el timer para lambda 30us
+    // *lambda -= 20;
+
+    //compenso offset de bits
+    bits -= 1;
+    for (i = 0; i < transitions; i += 2)
+    {
+        //veo si es 0
+        if ((bits_t[i] < lambda15) && (bits_t[i + 1] > lambda15))
+        {
+            *rxcode &= 0xFFFFFFFE;
+            if (bits)
+                *rxcode <<= 1;
+            bits--;
+        }
+        //veo si es 1
+        else if ((bits_t[i] > lambda15) && (bits_t[i + 1] < lambda15))
+        {
+            *rxcode |= 1;
+            if (bits)
+                *rxcode <<= 1;
+            bits--;
+        }
+        //es un error
+        else
+        {
+            i = transitions;
+            resp = resp_error;
+        }
+    }
+
+    return resp;
+}
+
+
+//--- end of file ---//

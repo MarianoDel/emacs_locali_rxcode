@@ -68,6 +68,9 @@ int main (void)
 {
     unsigned char i = 0;
     unsigned long ii = 0;
+
+    unsigned int new_code = 0;
+    unsigned short new_lambda = 0;
     char s_buf [128];
 
     main_state_t main_state = MAIN_WAIT_SILENCE;
@@ -161,7 +164,7 @@ int main (void)
                 LED_ON;
                 OCODE_ON;
                 main_state = MAIN_RX;
-                Usart1Send((char *) "nuevo header\n");
+                // Usart1Send((char *) "nuevo header\n");
                 CodesRecvCode16Reset();
             }
 
@@ -177,21 +180,64 @@ int main (void)
             {
                 if (resp == resp_ok)
                 {
-                    sprintf(s_buf, "bits: %d OK\n", i);
+                    // sprintf(s_buf, "bits: %d OK\n", i);
+                    main_state = MAIN_GET_CODE_HT;
                 }
 
                 if (resp == resp_error)
                 {
-                    sprintf(s_buf, "bits: %d ERR\n", i);                    
+                    sprintf(s_buf, "bits: %d ERR\n", i);
+                    main_state = MAIN_WAIT_SILENCE;
                 }
                 
                 LED_OFF;
                 OCODE_OFF;
                 Usart1Send(s_buf);
-                
-                main_state = MAIN_WAIT_SILENCE;                
             }
             break;
+
+        case MAIN_GET_CODE_HT:
+            resp = CodesUpdateTransitionsHT(i, &new_code, &new_lambda);
+                        
+            if (resp == resp_ok)
+            {
+                sprintf(s_buf, "code: 0x%x lambda: %d bits: %d HT\n",
+                        new_code,
+                        new_lambda,
+                        i);
+
+                Usart1Send(s_buf);
+                main_state = MAIN_WAIT_SILENCE;
+            }
+            else
+            {
+                main_state = MAIN_GET_CODE_PT_EV;
+            }
+            break;
+            
+        case MAIN_GET_CODE_PT_EV:
+            resp = CodesUpdateTransitionsPT_EV(i, &new_code, &new_lambda);
+
+            if (resp == resp_ok)
+            {
+                sprintf(s_buf, "code: 0x%x lambda: %d bits: %d PT or EV\n",
+                        new_code,
+                        new_lambda,
+                        i);
+            }
+            else
+            {
+                sprintf(s_buf, "code error\n");
+            }
+
+            Usart1Send(s_buf);
+            main_state = MAIN_WAIT_SILENCE;
+            break;
+
+        default:
+            main_state = MAIN_WAIT_SILENCE;
+            break;
+
         }
     }
 

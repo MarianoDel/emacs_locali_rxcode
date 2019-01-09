@@ -14,7 +14,20 @@
 #include "gpio.h"
 #include "hard.h"
 
+//--- Hardware Configs ------------------------------
 #define CODES_TIMER_CNT    (TIM4->CNT)
+#define DATA_PIN_ACTIVE_WITH_ONE
+// #define DATA_PIN_ACTIVE_WITH_ZERO
+
+
+
+
+#ifdef DATA_PIN_ACTIVE_WITH_ONE
+#define DATA_PIN          (RX_CODE)
+#else
+#define DATA_PIN          (!RX_CODE)
+#endif
+
 
 #define RX_CODE_PLLUP_ON Gpio5PullUpOn()
 #define RX_CODE_PLLUP_OFF Gpio5PullUpOff()
@@ -64,7 +77,8 @@ unsigned char SendCode16WithPilot (unsigned int, unsigned char, unsigned short, 
 void SendCode16Reset (void);
 resp_t CodesRecvCode16 (unsigned char *);
 void CodesRecvCode16Reset (void);
-resp_t CodesUpdateTransitions (unsigned char, unsigned int *, unsigned short *);
+resp_t CodesUpdateTransitionsHT (unsigned char, unsigned int *, unsigned short *);
+resp_t CodesUpdateTransitionsPT_EV (unsigned char, unsigned int *, unsigned short *);
 resp_t CodesWaitFive (void);
 void CodesWaitFiveReset (void);
 

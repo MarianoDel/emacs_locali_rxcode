@@ -39,8 +39,8 @@
 //-------- PWM Conf ------------------------
 
 //-------- Oscillator and Crystal selection (Freq in startup_clocksh) ---
-#define HSI_INTERNAL_RC
-// #define HSE_CRYSTAL_OSC
+// #define HSI_INTERNAL_RC
+#define HSE_CRYSTAL_OSC
 
 
 //-------- End Of Defines For Configuration ------
@@ -88,7 +88,9 @@ typedef enum {
 typedef enum {
     MAIN_WAIT_SILENCE = 0,
     MAIN_WAIT_SILENCE_A,
-    MAIN_RX
+    MAIN_RX,
+    MAIN_GET_CODE_HT,
+    MAIN_GET_CODE_PT_EV
 
 } main_state_t;
 
