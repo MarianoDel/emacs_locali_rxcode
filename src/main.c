@@ -163,6 +163,7 @@ int main (void)
                 //estuve 5ms sin nada
                 LED_ON;
                 OCODE_ON;
+
                 main_state = MAIN_RX;
                 // Usart1Send((char *) "nuevo header\n");
                 CodesRecvCode16Reset();
@@ -233,7 +234,7 @@ int main (void)
             Usart1Send(s_buf);
             main_state = MAIN_WAIT_SILENCE;
             break;
-
+            
         default:
             main_state = MAIN_WAIT_SILENCE;
             break;

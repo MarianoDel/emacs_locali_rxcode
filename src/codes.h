@@ -38,7 +38,8 @@
 //Wait States
 typedef enum {
 	CW_INIT = 0,
-	CW_WAITING
+	CW_WAITING_IN_ZERO,
+        CW_WAITING_IN_ONE
 
 } wait_state_t;
 
@@ -76,10 +77,12 @@ unsigned char SendCode16FixLambda (unsigned int, unsigned char, unsigned short, 
 unsigned char SendCode16WithPilot (unsigned int, unsigned char, unsigned short, unsigned short);
 void SendCode16Reset (void);
 resp_t CodesRecvCode16 (unsigned char *);
+resp_t CodesRecvCode16Ones (unsigned char *);
 void CodesRecvCode16Reset (void);
 resp_t CodesUpdateTransitionsHT (unsigned char, unsigned int *, unsigned short *);
 resp_t CodesUpdateTransitionsPT_EV (unsigned char, unsigned int *, unsigned short *);
 resp_t CodesWaitFive (void);
+resp_t CodesWaitFive_Up_or_Down (unsigned char *);
 void CodesWaitFiveReset (void);
 
 #endif /* CODES_H_ */
